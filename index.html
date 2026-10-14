@@ -11,11 +11,100 @@
       <img data-sb-field-path="heroImage" src="/assets/safe.png" alt="Safe test image">
     </main>
     <script>
-      // Selecting the annotated document is part of the owned test fixture so
-      // the inline custom control mounts during a normal Studio page load.
-      addEventListener('load', () => {
-        setTimeout(() => document.querySelector('[data-sb-field-path="title"]')?.click(), 1200);
-      });
+      // Harmless owned-project page-load reproducer. The preview speaks the
+      // same message protocol as Netlify Create's visual-editing snippet so
+      // the stored document editor opens without a manual click.
+      (() => {
+        if (parent === window) return;
+
+        const TOP = 'https://create.netlify.com';
+        const documentRef = {
+          srcObjectId: 'content/index.json',
+          srcType: 'git',
+          srcProjectId: '9a0364b9'
+        };
+        const pending = new Map();
+        let sequence = 0;
+        let mounted = false;
+        let editTimer;
+
+        const id = () => `stored-page-load-${Date.now()}-${++sequence}`;
+        const send = (type, data, kind) => {
+          const requestId = id();
+          if (kind) pending.set(requestId, kind);
+          parent.postMessage(JSON.stringify({ type, id: requestId, data }), TOP);
+          return requestId;
+        };
+        const respond = (request, data = true) => {
+          parent.postMessage(
+            JSON.stringify({ type: 'response', id: id(), response: request.id, data }),
+            TOP
+          );
+        };
+        const requestEdit = () => {
+          if (mounted) return;
+          send(
+            'actionButtonClicked',
+            {
+              button: 'edit',
+              fieldPath: [documentRef.srcObjectId, 'fields', 'title'],
+              xpath: '/html/body/main/h1'
+            },
+            'edit'
+          );
+        };
+        const retryEdit = () => {
+          clearTimeout(editTimer);
+          editTimer = setTimeout(requestEdit, 450);
+        };
+
+        addEventListener('message', (event) => {
+          if (event.origin !== TOP || event.source !== parent || typeof event.data !== 'string') return;
+          let message;
+          try {
+            message = JSON.parse(event.data);
+          } catch {
+            return;
+          }
+
+          if (message.type === 'navigate') {
+            history.replaceState(null, '', message.data?.url || message.data?.path || '/');
+            respond(message, true);
+            retryEdit();
+            return;
+          }
+
+          if (message.type === 'setCurrentPageId' || message.type === 'setSettings') {
+            retryEdit();
+            return;
+          }
+
+          if (message.type !== 'response' || !pending.has(message.response)) return;
+          const kind = pending.get(message.response);
+          pending.delete(message.response);
+
+          if (kind === 'ready') {
+            send('clickReferencedObjects', { referencedObject: documentRef }, 'reference');
+            retryEdit();
+          } else if (kind === 'reference') {
+            retryEdit();
+          } else if (kind === 'edit') {
+            if (message.error) {
+              retryEdit();
+            } else {
+              mounted = true;
+              clearTimeout(editTimer);
+              document.documentElement.setAttribute('data-page-load-editor-opened', 'confirmed');
+            }
+          }
+        });
+
+        send('ready', { path: '/' }, 'ready');
+        setTimeout(() => {
+          send('clickReferencedObjects', { referencedObject: documentRef }, 'reference');
+          retryEdit();
+        }, 1800);
+      })();
     </script>
   </body>
 </html>

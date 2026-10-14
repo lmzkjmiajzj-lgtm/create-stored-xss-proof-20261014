@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Stored Create XSS proof</title>
+  </head>
+  <body>
+    <main data-sb-object-id="content/index.json">
+      <h1 data-sb-field-path="title">Stored XSS Proof</h1>
+      <p data-sb-field-path="description">Harmless marker test</p>
+      <img data-sb-field-path="heroImage" src="/assets/safe.png" alt="Safe test image">
+    </main>
+    <script>
+      // Selecting the annotated document is part of the owned test fixture so
+      // the inline custom control mounts during a normal Studio page load.
+      addEventListener('load', () => {
+        setTimeout(() => document.querySelector('[data-sb-field-path="title"]')?.click(), 1200);
+      });
+    </script>
+  </body>
+</html>

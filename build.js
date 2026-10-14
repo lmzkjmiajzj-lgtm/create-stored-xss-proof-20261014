@@ -1,1 +1,5 @@
-require('fs').mkdirSync('dist',{recursive:true});require('fs').writeFileSync('dist/index.html','<!doctype html><html><body><div data-sb-object-id="content/index.json"><h1 data-sb-field-path="title">Stored XSS Proof</h1></div></body></html>');
+const fs = require('fs');
+
+fs.mkdirSync('dist', { recursive: true });
+fs.copyFileSync('index.html', 'dist/index.html');
+fs.copyFileSync('custom-control.js', 'dist/custom-control.js');

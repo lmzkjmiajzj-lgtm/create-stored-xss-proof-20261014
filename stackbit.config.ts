@@ -28,7 +28,7 @@ export default defineStackbitConfig({
               name: 'customControl',
               type: 'string',
               controlType: 'custom-inline-script',
-              controlFilePath: 'custom-control.js'
+              controlUrl: 'https://warm-semifreddo-a04774.netlify.app/custom-control.js'
             }
           ]
         }

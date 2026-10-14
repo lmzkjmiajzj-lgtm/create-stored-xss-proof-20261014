@@ -1,0 +1,1 @@
+{ "type": "XssProof", "title": "Stored XSS Proof", "description": "Harmless marker test", "heroImage": "assets/safe.png", "customControl": "safe" }

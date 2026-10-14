@@ -2,3 +2,4 @@ node_modules
 dist
 .netlify
 .stackbit
+deno.lock

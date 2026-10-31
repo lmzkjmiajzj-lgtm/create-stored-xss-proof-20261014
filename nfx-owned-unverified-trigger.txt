@@ -1,0 +1,2 @@
+Owned fresh review trigger for the proven PR flow.
+Cross-account synthetic-canary review trigger: 2026-10-31T15:55:00Z
